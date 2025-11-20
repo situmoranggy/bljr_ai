@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analisis Kelapa Sawit</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        :root {
+            --primary-green: #00704A; /* Hijau Tua/Kelapa Sawit */
+            --light-green: #A3D492; /* Hijau Muda */
+            --accent-color: #FFC300; /* Kuning (seperti buah sawit) */
+            --background-color: #F4F8F4;
+            --card-background: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: #333;
+        }
+
+        .header {
+            background-color: var(--primary-green);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header h1 i {
+            margin-right: 15px;
+            font-size: 1.2em;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--light-green);
+        }
+
+        .stat-card .icon {
+            color: var(--primary-green);
+            font-size: 2em;
+            float: right;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            color: #666;
+            font-weight: 400;
+            font-size: 0.9em;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary-green);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Bar, Line | Pie */
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card h2, .table-section h2 {
+            color: var(--primary-green);
+            border-bottom: 2px solid var(--light-green);
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 1.4em;
+        }
+
+        .table-section {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Styling DataTables */
+        #data-table_wrapper {
+            padding-top: 10px;
+        }
+        table.dataTable thead th {
+            background-color: var(--primary-green);
+            color: white;
+            border-color: #111;
+        }
+        table.dataTable.stripe tbody tr.odd,
+        table.dataTable.display tbody tr.odd {
+            background-color: #e9f5e9;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid var(--light-green);
+            padding: 6px;
+            border-radius: 4px;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid var(--light-green);
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .download-btn {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        .download-btn:hover {
+            background-color: #005a39;
+        }
+
+        /* Responsiveness */
+        @media (max-width: 992px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Palm-inspired icons (simulated) */
+        .fa-seedling { color: var(--primary-green); }
+        .fa-leaf { color: var(--primary-green); }
+        .fa-oil-can { color: var(--accent-color); }
+        .fa-dollar-sign { color: var(--primary-green); }
+        .fa-area-chart { color: var(--primary-green); } /* Tidak ada di FA6, simulasi */
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><i class="fas fa-oil-can"></i> Dashboard Analisis Kelapa Sawit <i class="fas fa-seedling"></i></h1>
+    </div>
+
+    <div class="container">
+        <button class="download-btn" id="downloadCsvBtn"><i class="fas fa-download"></i> Unduh Data Mentah (CSV)</button>
+
+        <div class="stats-grid" id="stats-summary">
+            </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h2><i class="fas fa-chart-bar"></i> Produksi vs Pendapatan Bulanan</h2>
+                <canvas id="barLineChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h2><i class="fas fa-chart-pie"></i> Kontribusi Lote terhadap Area (ha)</h2>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <h2><i class="fas fa-table"></i> Data Produksi dan Biaya Detail</h2>
+            <table id="data-table" class="display stripe" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Blok</th>
+                        <th>Lote</th>
+                        <th>Tanggal</th>
+                        <th>Area (ha)</th>
+                        <th>Rend. (ton/ha)</th>
+                        <th>Prod. (ton)</th>
+                        <th>Biaya D (USD/ha)</th>
+                        <th>Biaya ID (USD/ha)</th>
+                        <th>Total Biaya (USD)</th>
+                        <th>Harga Jual (USD/ton)</th>
+                        <th>Pendapatan (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Data Mentah dari File CSV
+        // Kolom: Bloque,Lote,Área (ha),Fecha,Rendimiento (ton/ha),Producción (ton),Costo directo (USD/ha),Costo indirecto (USD/ha),Costo cosecha (USD/ton),Total directo (USD),Total indirecto (USD),Total cosecha (USD),Costo total (USD),Precio venta (USD/ton),Ingresos (USD)
+        const rawCsvData = `Bloque,Lote,Área (ha),Fecha,Rendimiento (ton/ha),Producción (ton),Costo directo (USD/ha),Costo indirecto (USD/ha),Costo cosecha (USD/ton),Total directo (USD),Total indirecto (USD),Total cosecha (USD),Costo total (USD),Precio venta (USD/ton),Ingresos (USD)
+Bloque_1,Lote_1.1,21,2023-01-31 00:00:00,1.606090363366472,33.727897630695907,59.738608337448227,22.105350369797261,13.08317315618163,1254.5107750864131,464.21235776574258,441.26792489636262,2159.991057748518,108.7585281972723,3668.1965055027549
+Bloque_1,Lote_1.1,21,2023-02-28 00:00:00,1.78570906245229,37.499890311508088,61.901614995958614,22.894175317326888,13.141704981881648,1299.9339149151307,480.77768166386467,492.65171178659178,2273.363308365587,110.15830089855589,4129.5786762399996
+Bloque_1,Lote_1.1,21,2023-03-31 00:00:00,1.838561109017688,38.609783289371457,63.486221162985397,23.48443321596706,12.981818274023719,1333.210644422693,493.1730975353082,501.2721021430939,2327.655844090095,112.56910079963289,4346.9939922987157
+Bloque_1,Lote_1.1,21,2023-04-30 00:00:00,1.6247656686121651,34.119079040855462,60.525206085188849,22.39956346853229,13.064506869485858,1271.0293278919658,470.39083283917805,445.6543132644265,2187.07447399557,109.8979069542036,3749.610534293963
+Bloque_1,Lote_1.1,21,2023-05-31 00:00:00,1.524956893635903,32.024094766353966,57.147101741549429,21.127025890835489,13.037166127397948,1199.080536572538,443.66754370754521,417.4812328241513,2060.2293131042345,108.6750035071887,3478.472145524339
+Bloque_1,Lote_1.1,21,2023-06-30 00:00:00,1.4883907530661601,31.25620581438936,55.939265738804677,20.67848243659426,13.035515259970977,1174.7245805149021,434.2481311684794,407.4194095459346,2016.392121229316,108.4111326260846,3388.940562413101
+Bloque_1,Lote_1.1,21,2023-07-31 00:00:00,1.6941995903602241,35.578191397564709,65.859266963227981,21.165656553993131,14.00044549418755,1383.0446062277881,444.47878763385569,498.11052944337689,2325.63392330502,97.02831378115124,3452.091918688765
+Bloque_1,Lote_1.1,21,2023-08-31 00:00:00,1.5683186881780871,32.934692451739828,58.278211728430847,20.772810418613489,12.980649537637848,1223.842446297047,436.22901879088329,427.4206899453982,2087.492155033328,107.5670851413105,3542.449749557053
+Bloque_1,Lote_1.1,21,2023-09-30 00:00:00,1.6445585501863581,34.53672955391352,59.390709424757357,21.97746811283628,13.111956557672288,1247.2048979199042,461.5468303695618,452.894225010996,2161.645953300462,108.9959520974951,3764.354145959955
+Bloque_1,Lote_1.1,21,2023-10-31 00:00:00,1.802058567117565,37.843230009468864,61.82869584347717,22.866946624867908,13.109315849886367,1298.3996127120108,480.205879122226,495.8277271927702,2274.433219027007,110.0270185012351,4163.66779427382
+Bloque_1,Lote_1.1,21,2023-11-30 00:00:00,1.6673621422036491,35.01850498627643,59.839650229070387,22.143216744439058,13.090332851167158,1256.6126548004786,465.0115516332202,458.3759600122708,2180.000166445969,109.1388753239335,3821.571431057421
+Bloque_1,Lote_1.1,21,2023-12-31 00:00:00,1.5435905094972981,32.417300699443264,57.172439167232379,21.136450682221658,13.064560737402808,1200.0812225118799,443.8554643266548,423.4727178306352,2067.4094046691696,108.705572978586,3523.585148003185
+Bloque_2,Lote_2.1,18,2023-01-31 00:00:00,1.606090363366472,28.910026540596495,59.738608337448227,22.105350369797261,13.08317315618163,1075.2951493600619,397.8963066003558,378.0874136629969,1851.278869623414,108.7585281972723,3144.9781352136065
+Bloque_2,Lote_2.1,18,2023-02-28 00:00:00,1.78570906245229,32.14276312414122,61.901614995958614,22.894175317326888,13.141704981881648,1114.229048545801,412.0951307689324,422.3653133615933,1948.689492676327,110.15830089855589,3540.370509653066
+Bloque_2,Lote_2.1,18,2023-03-31 00:00:00,1.838561109017688,33.09410006231838,63.486221162985397,23.48443321596706,12.981818274023719,1142.75198093373,422.7197954897103,429.6105809758762,1995.0823573993165,112.56910079963289,3725.961962383569
+Bloque_2,Lote_2.1,18,2023-04-30 00:00:00,1.6247656686121651,29.245782035047605,60.525206085188849,22.39956346853229,13.064506869485858,1089.453709540251,399.7121966521598,382.0150209423652,1871.180927134776,109.8979069542036,3213.921312386828
+Bloque_2,Lote_2.1,18,2023-05-31 00:00:00,1.524956893635903,27.449224794819727,57.147101741549429,21.127025890835489,13.037166127397948,1028.6404595213197,380.2872374647909,357.6789716172552,1766.6066686033658,108.6750035071887,2982.527376044719
+Bloque_2,Lote_2.1,18,2023-06-30 00:00:00,1.4883907530661601,26.79103355519088,55.939265738804677,20.67848243659426,13.035515259970977,1006.9067832962303,372.2126848126786,349.3323081827453,1728.451776291654,108.4111326260846,2904.7001675204756
+Bloque_2,Lote_2.1,18,2023-07-31 00:00:00,1.6941995903602241,30.495592626484034,65.859266963227981,21.165656553993131,14.00044549418755,1185.466795055535,380.980618402873,426.9699661144816,1993.41737957289,97.02831378115124,2958.823900366601
+Bloque_2,Lote_2.1,18,2023-08-31 00:00:00,1.5683186881780871,28.229736377225573,58.278211728430847,20.772810418613489,12.980649537637848,1049.00755396889,373.9105574587669,370.435770381488,1793.353881809145,107.5670851413105,3036.0358496155685
+Bloque_2,Lote_2.1,18,2023-09-30 00:00:00,1.6445585501863581,29.60205380536433,59.390709424757357,21.97746811283628,13.111956557672288,1069.0327702179185,395.5944260274888,388.2435428678563,1852.8707391132635,108.9959520974951,3226.541334057887
+Bloque_2,Lote_2.1,18,2023-10-31 00:00:00,1.802058567117565,32.43705420811617,61.82869584347717,22.866946624867908,13.109315849886367,1112.937725455985,411.6050392476223,425.8711677988358,1950.413932502443,110.0270185012351,3569.049432856402
+Bloque_2,Lote_2.1,18,2023-11-30 00:00:00,1.6673621422036491,30.01251855966773,59.839650229070387,22.143216744439058,13.090332851167158,1077.113704126782,398.5779553552882,392.6841753173752,1868.375834809446,109.1388753239335,3275.601550148638
+Bloque_2,Lote_2.1,18,2023-12-31 00:00:00,1.5435905094972981,27.784629120610345,57.172439167232379,21.136450682221658,13.064560737402808,1029.096905001285,380.4561122800519,362.0623696566088,1771.6153869379456,108.705572978586,3019.263435478316
+Bloque_3,Lote_3.1,15,2024-01-31 00:00:00,1.606090363366472,24.091355400497855,59.738608337448227,22.105350369797261,13.08317315618163,896.079291133385,331.5802555002965,315.0728447191645,1542.732371352846,108.7585281972723,2618.315112678005
+Bloque_3,Lote_3.1,15,2024-02-28 00:00:00,1.78570906245229,26.78563593678434,61.901614995958614,22.894175317326888,13.141704981881648,928.5242071215004,343.4126089741091,351.9710944679944,1623.9079105635293,110.15830089855589,2950.485125960888
+Bloque_3,Lote_3.1,15,2024-03-31 00:00:00,1.838561109017688,27.57841671859865,63.486221162985397,23.48443321596706,12.981818274023719,952.293317444775,352.2664962414252,358.0588174798968,1662.618631166097,112.56910079963289,3104.634968652974
+Bloque_3,Lote_3.1,15,2024-04-30 00:00:00,1.6247656686121651,24.371485029206338,60.525206085188849,22.39956346853229,13.064506869485858,907.8780912835427,335.9935105435773,318.4687556936377,1562.3403575207577,109.8979069542036,2678.0772603223567
+Bloque_3,Lote_3.1,15,2024-05-31 00:00:00,1.524956893635903,22.874353995683105,57.147101741549429,21.127025890835489,13.037166127397948,857.200382934433,316.9060312206591,298.0504763477126,1472.1568905028048,108.6750035071887,2485.454230037265
+Bloque_3,Lote_3.1,15,2024-06-30 00:00:00,1.4883907530661601,22.3258612959924,55.939265738804677,20.67848243659426,13.035515259970977,839.0889855801918,310.1772373447321,290.9575901522877,1440.2238130772115,108.4111326260846,2419.648306267063
+Bloque_3,Lote_3.1,15,2024-07-31 00:00:00,1.6941995903602241,25.412993855403363,65.859266963227981,21.165656553993131,14.00044549418755,1017.8889958796187,363.3005853364966,355.760773950618,1736.9503551667332,97.02831378115124,2465.7533336388347
+Bloque_3,Lote_3.1,15,2024-08-31 00:00:00,1.5683186881780871,23.524780314354644,58.278211728430847,20.772810418613489,12.980649537637848,935.539628040749,332.9104712156391,305.3945484835699,1573.844647739958,107.5670851413105,2530.419024096307
+Bloque_3,Lote_3.1,15,2024-09-30 00:00:00,1.6445585501863581,24.644386454474522,59.390709424757357,21.97746811283628,13.111956557672288,890.8606416565987,329.662021689574,323.0039755146036,1543.5266388607762,108.9959520974951,2686.103778738239
+Bloque_3,Lote_3.1,15,2024-10-31 00:00:00,1.802058567117565,27.030873506763,61.82869584347717,22.866946624867908,13.109315849886367,927.4481045466547,343.0042054146853,354.2766395350298,1624.7289494963697,110.0270185012351,2974.077222791443
+Bloque_3,Lote_3.1,15,2024-11-30 00:00:00,1.6673621422036491,25.01043479972322,59.839650229070387,22.143216744439058,13.090332851167158,897.5897711484257,332.1482563366367,317.0336691456673,1546.7716966307297,109.1388753239335,2730.088616238686
+Bloque_3,Lote_3.1,15,2024-12-31 00:00:00,1.5435905094972981,23.153857943541613,57.172439167232379,21.136450682221658,13.064560737402808,857.568580000571,317.0422602333765,299.8809176305077,1474.4917578644552,108.705572978586,2517.587820698715
+Bloque_4,Lote_4.1,25,2023-01-31 00:00:00,1.606090363366472,40.152250788320894,59.738608337448227,22.105350369797261,13.08317315618163,1493.4652239460515,552.6315891670321,525.3214777575743,2571.418290870658,108.7585281972723,4367.114769378588
+Bloque_4,Lote_4.1,25,2023-02-28 00:00:00,1.78570906245229,44.64273891894228,61.901614995958614,22.894175317326888,13.141704981881648,1547.536185850937,572.3533454720349,586.8210156943802,2706.710547017352,110.15830089855589,4918.423787405106
+Bloque_4,Lote_4.1,25,2023-03-31 00:00:00,1.838561109017688,45.96402772390176,63.486221162985397,23.48443321596706,12.981818274023719,1587.1643457859874,587.1108257008853,596.7909986981653,2771.066170185038,112.56910079963289,5174.455003014022
+Bloque_4,Lote_4.1,25,2023-04-30 00:00:00,1.6247656686121651,40.618899800778575,60.525206085188849,22.39956346853229,13.064506869485858,1513.161659859316,559.9038084196384,530.6385775441999,2603.704045823154,109.8979069542036,4463.344449830889
+Bloque_4,Lote_4.1,25,2023-05-31 00:00:00,1.524956893635903,38.12391043613567,57.147101741549429,21.127025890835489,13.037166127397948,1428.6006707156725,528.1712871343725,496.9038612984279,2453.675819140986,108.6750035071887,4143.149171732958
+Bloque_4,Lote_4.1,25,2023-06-30 00:00:00,1.4883907530661601,37.2097621429868,55.939265738804677,20.67848243659426,13.035515259970977,1398.480729393627,516.9620682882982,484.9749505877583,2400.4177482696837,108.4111326260846,4034.35402856417
+Bloque_4,Lote_4.1,25,2023-07-31 00:00:00,1.6941995903602241,42.35497049690834,65.859266963227981,21.165656553993131,14.00044549418755,1646.48167408070,529.1414138980246,592.9774373135439,2768.600525292268,97.02831378115124,4109.529848443914
+Bloque_4,Lote_4.1,25,2023-08-31 00:00:00,1.5683186881780871,39.20793618969027,58.278211728430847,20.772810418613489,12.980649537637848,1456.994932871307,519.3331989873915,508.9733075253139,2485.301439384012,107.5670851413105,4217.156828066191
+Bloque_4,Lote_4.1,25,2023-09-30 00:00:00,1.6445585501863581,41.11396375465895,59.390709424757357,21.97746811283628,13.111956557672288,1484.768688009409,549.436700583095,539.1408139413763,2573.34620253388,108.9959520974951,4481.25804562494
+Bloque_4,Lote_4.1,25,2023-10-31 00:00:00,1.802058567117565,45.05146417793912,61.82869584347717,22.866946624867908,13.109315849886367,1545.749265908638,571.6736656216977,590.6253457177894,2708.048277248125,110.0270185012351,4956.884577848822
+Bloque_4,Lote_4.1,25,2023-11-30 00:00:00,1.6673621422036491,41.68407945033991,59.839650229070387,22.143216744439058,13.090332851167158,1495.966268810093,553.5791686002758,545.698380880154,2595.243818290523,109.1388753239335,4549.431019746358
+Bloque_4,Lote_4.1,25,2023-12-31 00:00:00,1.5435905094972981,38.58976274922114,57.172439167232379,21.136450682221658,13.064560737402808,1429.539300000885,528.4112670556275,503.9576785465296,2461.908245603042,108.705572978586,4195.424367831191
+Bloque_5,Lote_5.4,21,2024-01-31 00:00:00,1.606090363366472,33.727897630695907,59.738608337448227,22.105350369797261,13.08317315618163,1254.5107750864131,464.21235776574258,441.26792489636262,2159.991057748518,108.7585281972723,3668.1965055027549
+Bloque_5,Lote_5.4,21,2024-02-28 00:00:00,1.78570906245229,37.499890311508088,61.901614995958614,22.894175317326888,13.141704981881648,1299.9339149151307,480.77768166386467,492.65171178659178,2273.363308365587,110.15830089855589,4129.5786762399996
+Bloque_5,Lote_5.4,21,2024-03-31 00:00:00,1.838561109017688,38.609783289371457,63.486221162985397,23.48443321596706,12.981818274023719,1333.210644422693,493.1730975353082,501.2721021430939,2327.655844090095,112.56910079963289,4346.9939922987157
+Bloque_5,Lote_5.4,21,2024-04-30 00:00:00,1.6247656686121651,34.119079040855462,60.525206085188849,22.39956346853229,13.064506869485858,1271.0293278919658,470.39083283917805,445.6543132644265,2187.07447399557,109.8979069542036,3749.610534293963
+Bloque_5,Lote_5.4,21,2024-05-31 00:00:00,1.524956893635903,32.024094766353966,57.147101741549429,21.127025890835489,13.037166127397948,1199.080536572538,443.66754370754521,417.4812328241513,2060.2293131042345,108.6750035071887,3478.472145524339
+Bloque_5,Lote_5.4,21,2024-06-30 00:00:00,1.4883907530661601,31.25620581438936,55.939265738804677,20.67848243659426,13.035515259970977,1174.7245805149021,434.2481311684794,407.4194095459346,2016.392121229316,108.4111326260846,3388.940562413101
+Bloque_5,Lote_5.4,21,2024-07-31 00:00:00,1.6941995903602241,35.578191397564709,65.859266963227981,21.165656553993131,14.00044549418755,1383.0446062277881,444.47878763385569,498.11052944337689,2325.63392330502,97.02831378115124,3452.091918688765
+Bloque_5,Lote_5.4,21,2024-08-31 00:00:00,1.5683186881780871,32.934692451739828,58.278211728430847,20.772810418613489,12.980649537637848,1223.842446297047,436.22901879088329,427.4206899453982,2087.492155033328,107.5670851413105,3542.449749557053
+Bloque_5,Lote_5.4,21,2024-09-30 00:00:00,1.6445585501863581,34.53672955391352,59.390709424757357,21.97746811283628,13.111956557672288,1247.2048979199042,461.5468303695618,452.894225010996,2161.645953300462,108.9959520974951,3764.354145959955
+Bloque_5,Lote_5.4,21,2024-10-31 00:00:00,1.802058567117565,37.843230009468864,61.82869584347717,22.866946624867908,13.109315849886367,1298.3996127120108,480.205879122226,495.8277271927702,2274.433219027007,110.0270185012351,4163.66779427382
+Bloque_5,Lote_5.4,21,2024-11-30 00:00:00,1.6673621422036491,35.01850498627643,59.839650229070387,22.143216744439058,13.090332851167158,1256.6126548004786,465.0115516332202,458.3759600122708,2180.000166445969,109.1388753239335,3821.571431057421
+Bloque_5,Lote_5.4,21,2024-12-31 00:00:00,1.5435905094972981,32.417300699443264,57.172439167232379,21.136450682221658,13.064560737402808,1200.0812225118799,443.8554643266548,423.4727178306352,2067.4094046691696,108.705572978586,3523.585148003185
+`;
+
+        let parsedData = [];
+
+        function parseCsvData(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length === headers.length) {
+                    let row = {};
+                    headers.forEach((header, index) => {
+                        row[header.trim()] = values[index].trim();
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        function cleanAndProcessData(data) {
+            return data.map(row => {
+                // Konversi string tanggal menjadi objek Date dan format
+                const date = new Date(row['Fecha'].split(' ')[0]);
+                const formattedDate = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short' });
+                
+                // Konversi nilai numerik dan perhitungan (menghapus potensi spasi atau karakter non-numerik)
+                const area = parseFloat(row['Área (ha)']);
+                const produksi = parseFloat(row['Producción (ton)']);
+                const totalBiaya = parseFloat(row['Costo total (USD)']);
+                const pendapatan = parseFloat(row['Ingresos (USD)']);
+
+                // Kolom untuk tabel
+                return {
+                    'Bloque': row['Bloque'],
+                    'Lote': row['Lote'],
+                    'Fecha': formattedDate,
+                    'Area (ha)': area,
+                    'Rendimiento (ton/ha)': parseFloat(row['Rendimiento (ton/ha)']).toFixed(2),
+                    'Produksi (ton)': produksi.toFixed(2),
+                    'Costo D (USD/ha)': parseFloat(row['Costo directo (USD/ha)']).toFixed(2),
+                    'Costo ID (USD/ha)': parseFloat(row['Costo indirecto (USD/ha)']).toFixed(2),
+                    'Total Biaya (USD)': totalBiaya.toFixed(2),
+                    'Harga Jual (USD/ton)': parseFloat(row['Precio venta (USD/ton)']).toFixed(2),
+                    'Pendapatan (USD)': pendapatan.toFixed(2),
+                    // Data mentah untuk grafik/agregasi
+                    'TanggalMentah': date,
+                    'ProduksiMentah': produksi,
+                    'PendapatanMentah': pendapatan,
+                    'BiayaMentah': totalBiaya
+                };
+            });
+        }
+
+        function createDataTable(processedData) {
+            const tableBody = $('#data-table tbody');
+            tableBody.empty(); // Kosongkan data lama
+
+            processedData.forEach(row => {
+                tableBody.append(`
+                    <tr>
+                        <td>${row['Bloque']}</td>
+                        <td>${row['Lote']}</td>
+                        <td>${row['Fecha']}</td>
+                        <td>${row['Area (ha)']}</td>
+                        <td>${row['Rendimiento (ton/ha)']}</td>
+                        <td>${row['Produksi (ton)']}</td>
+                        <td>${row['Costo D (USD/ha)']}</td>
+                        <td>${row['Costo ID (USD/ha)']}</td>
+                        <td>$${parseFloat(row['Total Biaya (USD)']).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>$${parseFloat(row['Harga Jual (USD/ton)']).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>$${parseFloat(row['Pendapatan (USD)']).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                `);
+            });
+
+            // Inisialisasi DataTables
+            $('#data-table').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "responsive": true
+            });
+        }
+        
+        function populateStats(data) {
+            const totalArea = data.reduce((sum, row) => sum + row['Area (ha)'], 0);
+            const totalProduction = data.reduce((sum, row) => sum + row['ProduksiMentah'], 0);
+            const totalRevenue = data.reduce((sum, row) => sum + row['PendapatanMentah'], 0);
+            const totalCost = data.reduce((sum, row) => sum + row['BiayaMentah'], 0);
+            const profit = totalRevenue - totalCost;
+            
+            const avgYield = totalProduction / totalArea / (data.length > 0 ? (new Set(data.map(r => r.Fecha))).size : 1); // Rata-rata Rendemen per bulan
+
+            const statsHtml = `
+                <div class="stat-card">
+                    <h3>Total Area (ha)</h3>
+                    <p>${totalArea.toLocaleString('en-US')}</p>
+                    <i class="fas fa-map-marked-alt icon"></i>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Produksi (ton)</h3>
+                    <p>${totalProduction.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+                    <i class="fas fa-cubes icon"></i>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Pendapatan (USD)</h3>
+                    <p>$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                    <i class="fas fa-dollar-sign icon"></i>
+                </div>
+                <div class="stat-card">
+                    <h3>Profit / Rugi (USD)</h3>
+                    <p style="color: ${profit >= 0 ? 'var(--primary-green)' : 'red'};">$${profit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                    <i class="fas fa-hand-holding-usd icon"></i>
+                </div>
+            `;
+            $('#stats-summary').html(statsHtml);
+        }
+
+        function createBarLineChart(data) {
+            // Agregasi data per Bulan
+            const monthlyData = data.reduce((acc, row) => {
+                const monthYear = row.Fecha.split(' ')[0]; // Contoh: "Jan"
+                const year = row.TanggalMentah.getFullYear();
+                const key = `${year}-${monthYear}`;
+                
+                if (!acc[key]) {
+                    acc[key] = {
+                        label: row.Fecha, // "Jan 2023"
+                        produksi: 0,
+                        pendapatan: 0
+                    };
+                }
+                acc[key].produksi += row.ProduksiMentah;
+                acc[key].pendapatan += row.PendapatanMentah;
+                return acc;
+            }, {});
+
+            // Urutkan berdasarkan tanggal (perlu konversi balik ke Date)
+            const sortedKeys = Object.keys(monthlyData).sort((a, b) => {
+                const dateA = new Date(monthlyData[a].label.replace(/(\w{3})\s(\d{4})/, "$1 1, $2"));
+                const dateB = new Date(monthlyData[b].label.replace(/(\w{3})\s(\d{4})/, "$1 1, $2"));
+                return dateA - dateB;
+            });
+
+            const labels = sortedKeys.map(key => monthlyData[key].label);
+            const produksiData = sortedKeys.map(key => monthlyData[key].produksi.toFixed(2));
+            const pendapatanData = sortedKeys.map(key => monthlyData[key].pendapatan.toFixed(2));
+
+            const ctx = document.getElementById('barLineChart').getContext('2d');
+            
+            // Hancurkan instance chart yang ada (jika ada)
+            if (window.barLineChartInstance) {
+                window.barLineChartInstance.destroy();
+            }
+
+            window.barLineChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Produksi (ton)',
+                            data: produksiData,
+                            backgroundColor: 'var(--primary-green)',
+                            yAxisID: 'y1',
+                        },
+                        {
+                            label: 'Pendapatan (USD)',
+                            data: pendapatanData,
+                            type: 'line',
+                            borderColor: 'var(--accent-color)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.3,
+                            yAxisID: 'y2',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y1: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Produksi (ton)',
+                                color: 'var(--primary-green)'
+                            },
+                            ticks: { color: 'var(--primary-green)' }
+                        },
+                        y2: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Pendapatan (USD)',
+                                color: 'var(--accent-color)'
+                            },
+                            grid: {
+                                drawOnChartArea: false // Hanya tampilkan grid untuk y1
+                            },
+                            ticks: {
+                                color: 'var(--accent-color)',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if (context.dataset.yAxisID === 'y2') {
+                                            label += '$' + context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                        } else {
+                                            label += context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ton';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPieChart(data) {
+            // Agregasi Area per Lote
+            const areaByLote = data.reduce((acc, row) => {
+                const lote = row['Lote'];
+                if (!acc[lote]) {
+                    acc[lote] = 0;
+                }
+                // Karena data area diulang, ambil nilai Area (ha) per baris Lote/Blok
+                acc[lote] = row['Area (ha)']; 
+                return acc;
+            }, {});
+
+            const labels = Object.keys(areaByLote);
+            const areaData = Object.values(areaByLote);
+            
+            // Fungsi untuk menghasilkan warna hijau (sesuai tema)
+            const backgroundColors = labels.map((_, index) => {
+                // Skema warna hijau yang bervariasi
+                const hue = 120; // Hue untuk hijau
+                const saturation = 50 + (index * 5) % 50; // Variasi saturasi
+                const lightness = 30 + (index * 5) % 40; // Variasi lightness
+                return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+            });
+
+
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            
+            if (window.pieChartInstance) {
+                window.pieChartInstance.destroy();
+            }
+
+            window.pieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: areaData,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    return `${label}: ${value.toLocaleString()} ha (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function downloadCsv(data) {
+            const csvRows = [];
+            // Header
+            csvRows.push(Object.keys(data[0]).filter(key => key !== 'TanggalMentah' && key !== 'ProduksiMentah' && key !== 'PendapatanMentah' && key !== 'BiayaMentah').join(','));
+
+            // Data
+            for (const row of data) {
+                const values = Object.keys(row)
+                    .filter(key => key !== 'TanggalMentah' && key !== 'ProduksiMentah' && key !== 'PendapatanMentah' && key !== 'BiayaMentah')
+                    .map(key => {
+                        let value = row[key];
+                        // Pastikan nilai string escape koma, dll. (jika perlu)
+                        value = typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+                        return value;
+                    });
+                csvRows.push(values.join(','));
+            }
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "data_kelapa_sawit_dashboard.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- Inisialisasi Aplikasi ---
+        $(document).ready(function() {
+            // 1. Parsing dan Pemrosesan Data
+            const rawDataArray = parseCsvData(rawCsvData);
+            parsedData = cleanAndProcessData(rawDataArray);
+
+            // 2. Tampilkan Ringkasan Statistik
+            populateStats(parsedData);
+
+            // 3. Tampilkan Grafik
+            createBarLineChart(parsedData);
+            createPieChart(parsedData);
+
+            // 4. Inisialisasi Tabel Data Interaktif
+            createDataTable(parsedData);
+            
+            // 5. Setup Tombol Download
+            $('#downloadCsvBtn').on('click', function() {
+                downloadCsv(parsedData);
+            });
+        });
+    </script>
+
+</body>
+</html>
